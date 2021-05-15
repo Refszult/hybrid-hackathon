@@ -130,8 +130,8 @@ def meeting_reminder(remind):
         first_user = users[0]
         second_user = users[1]
 
-        remind(meeting_participant=str(first_user[1] + " " + first_user[2]), user_id=second_user[0])
-        remind(meeting_participant=str(second_user[1] + " " + second_user[2]), user_id=first_user[0])
+        remind(meeting_participant=str(first_user[1] + " " + first_user[2]), user_id=second_user[0], date=meet[1])
+        remind(meeting_participant=str(second_user[1] + " " + second_user[2]), user_id=first_user[0], date=meet[1])
 
         cursor.execute(f"UPDATE meets SET notified = 'true' WHERE id = '{meet[3]}'")
 

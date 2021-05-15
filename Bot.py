@@ -73,8 +73,8 @@ def get_text_messages(message):
         bot.send_message(message.from_user.id, "Я тебя не понимаю. Напиши /start.")
 
 
-def remind(meeting_participant, user_id):
-    msg = "Напоминаем: у вас встреча с " + meeting_participant + "в " + str((datetime.now() + timedelta(days=2)).strftime('%Y-%m-%d %H:%M'))
+def remind(meeting_participant, user_id, date):
+    msg = "Напоминаем: у вас встреча с " + meeting_participant + "в " + str(date.strftime('%Y-%m-%d %H:%M'))
     bot.send_message(user_id, msg)
 
 def job():
