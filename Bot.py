@@ -5,6 +5,7 @@ import random
 import telebot
 from telebot import types
 
+from handlers import get_user, create_user, add_position
 
 with open("token", "r") as f:
     token = f.read()
@@ -75,6 +76,19 @@ def get_text_messages(message):
         bot.send_message(message.from_user.id, text='Выбери свой знак зодиака', reply_markup=keyboard)
     elif message.text == "/help":
         bot.send_message(message.from_user.id, "Напиши Привет")
+    elif message.text.find("/position") != -1:
+        response = add_position(message.from_user.id, message.text.replace('/position', ''))
+        bot.send_message(message.from_user.id, response)
+    elif message.text == "/start":
+        user = get_user(message.from_user.id)
+        if user:
+            if user[3]:
+                bot.send_message(message.from_user.id, "Играем дальше")
+            else:
+                bot.send_message(message.from_user.id, "Зафиксируй свою должность. Введи /position название_должности")
+        else:
+            create_user(message.from_user)
+            bot.send_message(message.from_user.id, "Тут типа будет рега")
     else:
         bot.send_message(message.from_user.id, "Я тебя не понимаю. Напиши /help.")
 
