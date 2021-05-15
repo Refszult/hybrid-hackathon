@@ -120,7 +120,7 @@ def create_meeting(telegram_id):
 def meeting_reminder(remind):
     cursor = connect()
     cursor.execute(
-        f"SELECT * FROM meets WHERE status = 'ACCEPTED' AND start_date BETWEEN (NOW()::date + INTERVAL '1 DAY') AND (NOW()::date + INTERVAL '2 DAY')")
+        f"SELECT * FROM meets WHERE status = 'ACCEPTED' AND notified is null AND start_date BETWEEN (NOW()::date + INTERVAL '1 DAY') AND (NOW()::date + INTERVAL '2 DAY')")
     meets = cursor.fetchall()
 
     print("Нашёл " + str(len(meets)) + " встреч")
@@ -135,6 +135,11 @@ def meeting_reminder(remind):
 
         remind(meeting_participant=str(first_user[1] + " " + first_user[2]), user_id=second_user[0])
         remind(meeting_participant=str(second_user[1] + " " + second_user[2]), user_id=first_user[0])
+
+        cursor.execute(f"UPDATE meets SET notified = 'true' WHERE id = '{meet[3]}'")
+
+    cursor.close()
+
 
 def approved_meeting(telegram_id, approved_status, bot):
     user = get_user(telegram_id)
