@@ -27,22 +27,24 @@ def get_user(telegram_id):
 
 
 def create_user(data):
+    user = get_user(data.id)
+    if user:
+        return 'Ты уже зарегестрирован. Для поиска встречи напиши /meeting'
     # TODO: try catch!!!!
     cursor = connect()
     cursor.execute(f"INSERT INTO users (firstname, lastname, telegram_id)"
                    f" VALUES ('{data.first_name}', '{data.last_name}', {data.id})")
     cursor.close()
-    return True
+    return 'Отлично! Зафиксируй еще свою должность. Напиши /position название_должности'
 
 
 def add_position(telegram_id, position):
+    user = get_user(telegram_id)
     cursor = connect()
-    cursor.execute(f"SELECT id from users where telegram_id = {telegram_id}")
-    user = cursor.fetchone()
     if user == []:
         return 'Ты еще не зарегестрирован. Введи команду /start'
     if len(position) > 100:
         return 'Слишком длинное название должности!!!!'
     cursor.execute(f"UPDATE users SET position = '{position}'WHERE telegram_id = {telegram_id}")
-    return 'Отлично! Регистрация полностью пройдена. Сейчас начнется поиск собеседника!'
+    return 'Отлично! Регистрация полностью пройдена. Для поиска встречи напиши /meeting'
 
