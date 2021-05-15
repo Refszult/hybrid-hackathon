@@ -52,7 +52,11 @@ def get_text_messages(message):
         bot.send_message(message.from_user.id, f'<pre>{table}</pre>', parse_mode=ParseMode.HTML)
     elif message.text == "/rating":
         response = get_rating_history(message.from_user.id)
-        bot.send_message(message.from_user.id, f'Твой рейтинг - {response}')
+        if response > 0:
+            emoji = '😎'
+        else:
+            emoji = '👹'
+        bot.send_message(message.from_user.id, f'Твой рейтинг {response} {emoji}')
     else:
         bot.send_message(message.from_user.id, "Я тебя не понимаю. Напиши /start.")
 
