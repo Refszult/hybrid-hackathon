@@ -1,5 +1,7 @@
 # Подключаем модуль случайных чисел
+import datetime
 import random
+from datetime import datetime, timedelta
 
 # Подключаем модуль для Телеграма
 import telebot
@@ -35,9 +37,21 @@ def get_text_messages(message):
             bot.send_message(message.from_user.id, response)
     elif message.text == "/meeting":
         response_status, response, second_user_id = create_meeting(message.from_user.id)
+
+        keyboard = types.InlineKeyboardMarkup(); #наша клавиатура
+        key_accept = types.InlineKeyboardButton(text='OK', callback_data='yes'); # кнопка «Да»
+        keyboard.add(key_accept); # добавляем кнопку в клавиатуру
+        key_new_date = types.InlineKeyboardButton(text='Перенети на ' + str((datetime.now() + timedelta(days=2)).strftime('%Y-%m-%d %H:%M')), callback_data='yes'); # кнопка «Да»
+        keyboard.add(key_new_date); # добавляем кнопку в клавиатуру
+        key_decline= types.InlineKeyboardButton(text='Можно ещё посмтореть?', callback_data='no');
+        keyboard.add(key_decline);
+        # question = 'Тебе '+str(age)+' лет, тебя зовут '+name+' '+surname+'?';
+        # bot.send_message(message.from_user.id, text="встреча!", reply_markup=keyboard)
+
         if response_status:
-            bot.send_message(second_user_id, response[1])
-        bot.send_message(message.from_user.id, response[0])
+
+            bot.send_message(second_user_id, response[1], reply_markup=keyboard)
+        bot.send_message(message.from_user.id, response[0], reply_markup=keyboard)
     else:
         bot.send_message(message.from_user.id, "Я тебя не понимаю. Напиши /help.")
 
