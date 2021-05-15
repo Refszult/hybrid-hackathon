@@ -1,15 +1,21 @@
+import configparser
+import os
+
 import psycopg2
 from psycopg2 import Error
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
 
 def connect():
+    configs_path = "./"
+    config = configparser.ConfigParser()
+    config.read(os.path.join(configs_path, "config.ini.dist"))
     try:
         # Подключение к существующей базе данных
-        connection = psycopg2.connect(user='postgres',
-                                      password='1448',
-                                      host='localhost',
-                                      port='5432')
+        connection = psycopg2.connect(user=config.get("db", "user"),
+                                      password=config.get("db", "password"),
+                                      host=config.get("db", "host"),
+                                      port=config.get("db", "port"))
         connection.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
         # Курсор для выполнения операций с базой данных
         return connection.cursor()
