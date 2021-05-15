@@ -203,3 +203,10 @@ def declined_meeting(telegram_id):
     cursor.close()
     return True, 'Твоя встреча отменена! Напиши /meeting для формирования новой встречи.', \
            [first_user_telegram, second_user_telegram]
+
+
+def set_rating(id, rating):
+    cursor = connect()
+    cursor.execute(f"UPDATE meeting_participants SET rating = '{rating}' WHERE id in (select mp.id from meets left join meets_meeting_participants mmp on meets.id = mmp.meet_id left join meeting_participants mp on mp.id = mmp.participant_id left join users u on u.id = mp.user_id where status = 'ACCEPTED' and u.telegram_id <> '{id}')")
+    cursor.close()
+    return "Сбасибо, Ваш голос засчитан"

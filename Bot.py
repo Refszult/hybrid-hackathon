@@ -11,7 +11,7 @@ import telebot
 from telebot import types
 
 from handlers import get_user, create_user, add_position, create_meeting, change_meeting_date, approved_meeting, \
-    declined_meeting, meeting_reminder
+    declined_meeting, meeting_reminder, set_rating
 
 with open("token", "r") as f:
     token = f.read()
@@ -57,6 +57,17 @@ def get_text_messages(message):
         if response_status:
             bot.send_message(second_user_id, response[1], reply_markup=keyboard)
         bot.send_message(message.from_user.id, response[0], reply_markup=keyboard)
+    elif message.text == "/vote":
+        msg = "Как прошла ваша встреча? Ваше мнение важно для нас. Выберите картинку:"
+
+        keyboard = types.InlineKeyboardMarkup()  # наша клавиатура
+        keyboard.add(types.InlineKeyboardButton(text='🤩', callback_data='2'))
+        keyboard.add(types.InlineKeyboardButton(text='😎', callback_data='1'))
+        keyboard.add(types.InlineKeyboardButton(text='🤨', callback_data='0'))
+        keyboard.add(types.InlineKeyboardButton(text='😬', callback_data='-1'))
+        keyboard.add(types.InlineKeyboardButton(text='🤮', callback_data='-2'))
+
+        bot.send_message(message.from_user.id, msg, reply_markup=keyboard)
     else:
         bot.send_message(message.from_user.id, "Я тебя не понимаю. Напиши /help.")
 
@@ -91,6 +102,9 @@ def callback_worker(call):
             bot.send_message(users[1], response)
         else:
             bot.send_message(call.message.chat.id, response)
+    elif call.data in ["-2", "-1", "0", "1", "2"]:
+        msg = set_rating(call.message.chat.id, call.data)
+        bot.send_message(call.message.chat.id, msg)
 
 def worker():
     # нужно иметь свой цикл для запуска планировщика с периодом в 1 секунду:
@@ -102,7 +116,8 @@ t = threading.Thread(target=worker, args=())
 
 t.start()
 # Запускаем постоянный опрос бота в Телеграме
-bot.polling(none_stop=True, interval=0)
+b = threading.Thread(target=bot.polling(none_stop=True, interval=0), args=())
+b.start()
 
 
 
