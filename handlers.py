@@ -65,14 +65,14 @@ def add_position(telegram_id, position):
     user = get_user(telegram_id)
     cursor = connect()
     if user == []:
-        return 'Ты еще не зарегестрирован. Введи команду /start'
+        return False, 'Ты еще не зарегестрирован. Введи команду /start'
     if len(position) > 100:
-        return 'Слишком длинное название должности!!!!'
+        return False, 'Слишком длинное название должности!!!!'
     if len(position) == 0:
         position = 'Сотрудник'
     cursor.execute(f"UPDATE users SET position = '{position}'WHERE telegram_id = {telegram_id}")
     cursor.close()
-    return 'Отлично! Регистрация полностью пройдена. Для поиска встречи напиши /meeting'
+    return True, 'Отлично! Регистрация полностью пройдена.'
 
 
 def create_meeting(telegram_id):

@@ -10,7 +10,7 @@ import telebot
 from telebot import types
 # from telegram import ParseMode
 
-from buttons import generate_buttons
+from buttons import generate_buttons, generate_position_buttons
 from handlers import get_user, create_user, add_position, create_meeting, change_meeting_date, approved_meeting, \
     declined_meeting, meeting_reminder, set_rating, get_history, get_rating_history
 
@@ -30,24 +30,23 @@ def get_text_messages(message):
                                                "/history - для получение информации по последним 10 встречам \n"
                                                "/rating - для получения текущего рейтинга")
     elif message.text.find("/position") != -1:
-        response = add_position(message.from_user.id, message.text.replace('/position', ''))
+        response_status, response = add_position(message.from_user.id, message.text.replace('/position', ''))
         bot.send_message(message.from_user.id, response)
+        if response_status:
+            meeting(message.from_user.id)
     elif message.text == "/start":
         user = get_user(message.from_user.id)
         if user:
             if user[3]:
                 bot.send_message(message.from_user.id, "Для поиска встречи напиши /meeting.")
             else:
-                bot.send_message(message.from_user.id, "Зафиксируй свою должность. Напиши /position название_должности")
+                bot.send_message(message.from_user.id, "Зафиксируй свою должность. Напиши /position название_должности",
+                                 reply_markup=generate_position_buttons())
         else:
             response = create_user(message.from_user)
-            bot.send_message(message.from_user.id, response)
+            bot.send_message(message.from_user.id, response, reply_markup=generate_position_buttons())
     elif message.text == "/meeting":
-        response_status, response, second_user_id = create_meeting(message.from_user.id)
-        keyboard = generate_buttons(message.from_user.id)
-        if response_status:
-            bot.send_message(second_user_id, response[1], reply_markup=keyboard)
-        bot.send_message(message.from_user.id, response[0], reply_markup=keyboard)
+        meeting(message.from_user.id)
     elif message.text == "/vote":
         msg = "Как прошла ваша встреча? Ваше мнение важно для нас. Выберите картинку:"
 
@@ -59,9 +58,9 @@ def get_text_messages(message):
         keyboard.add(types.InlineKeyboardButton(text='🤮', callback_data='-2'))
 
         bot.send_message(message.from_user.id, msg, reply_markup=keyboard)
-    # elif message.text == "/history":
-    #     table = get_history(message.from_user.id)
-    #     bot.send_message(message.from_user.id, f'<pre>{table}</pre>', parse_mode=ParseMode.HTML)
+    elif message.text == "/history":
+         table = get_history(message.from_user.id)
+         bot.send_message(message.from_user.id, f'<pre>{table}</pre>', parse_mode=ParseMode.HTML)
     elif message.text == "/rating":
         response = get_rating_history(message.from_user.id)
         if response > 0:
@@ -106,12 +105,26 @@ def callback_worker(call):
     elif call.data in ["-2", "-1", "0", "1", "2"]:
         msg = set_rating(call.message.chat.id, call.data)
         bot.send_message(call.message.chat.id, msg)
+    elif call.data in ["HR", "Manager", "Developer"]:
+        response_status, response = add_position(call.message.chat.id, call.data)
+        bot.send_message(call.message.chat.id, response)
+        if response_status:
+            meeting(call.message.chat.id)
+
 
 def worker():
     # нужно иметь свой цикл для запуска планировщика с периодом в 1 секунду:
     while True:
         schedule.run_pending()
         time.sleep(1)
+
+
+def meeting(id):
+    response_status, response, second_user_id = create_meeting(id)
+    keyboard = generate_buttons(id)
+    if response_status:
+        bot.send_message(second_user_id, response[1], reply_markup=keyboard)
+    bot.send_message(id, response[0], reply_markup=keyboard)
 
 t = threading.Thread(target=worker, args=())
 
