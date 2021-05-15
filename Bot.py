@@ -1,4 +1,3 @@
-# Подключаем модуль случайных чисел
 import datetime
 from datetime import datetime, timedelta
 
@@ -9,9 +8,11 @@ import schedule
 # Подключаем модуль для Телеграма
 import telebot
 from telebot import types
+# from telegram import ParseMode
 
+from buttons import generate_buttons
 from handlers import get_user, create_user, add_position, create_meeting, change_meeting_date, approved_meeting, \
-    declined_meeting, meeting_reminder, set_rating
+    declined_meeting, meeting_reminder, set_rating, get_history, get_rating_history
 
 with open("token", "r") as f:
     token = f.read()
@@ -25,7 +26,9 @@ bot = telebot.TeleBot(token)
 @bot.message_handler(content_types=['text'])
 def get_text_messages(message):
     if message.text == "/help":
-        bot.send_message(message.from_user.id, "Напиши /start")
+        bot.send_message(message.from_user.id, "Напиши /start для работы с ботом \n"
+                                               "/history - для получение информации по последним 10 встречам \n"
+                                               "/rating - для получения текущего рейтинга")
     elif message.text.find("/position") != -1:
         response = add_position(message.from_user.id, message.text.replace('/position', ''))
         bot.send_message(message.from_user.id, response)
@@ -41,19 +44,7 @@ def get_text_messages(message):
             bot.send_message(message.from_user.id, response)
     elif message.text == "/meeting":
         response_status, response, second_user_id = create_meeting(message.from_user.id)
-
-        keyboard = types.InlineKeyboardMarkup()  # наша клавиатура
-        key_accept = types.InlineKeyboardButton(text='OK', callback_data='yes')  # кнопка «Да»
-        keyboard.add(key_accept)  # добавляем кнопку в клавиатуру
-        key_new_date = types.InlineKeyboardButton(
-            text='Перенети на ' + str((datetime.now() + timedelta(days=3)).strftime('%Y-%m-%d %H:%M')),
-            callback_data='new_date')  # кнопка «Да»
-        keyboard.add(key_new_date)  # добавляем кнопку в клавиатуру
-        key_decline = types.InlineKeyboardButton(text='Можно ещё посмтореть?', callback_data='no')
-        keyboard.add(key_decline)
-        # question = 'Тебе '+str(age)+' лет, тебя зовут '+name+' '+surname+'?'
-        # bot.send_message(message.from_user.id, text="встреча!", reply_markup=keyboard)
-
+        keyboard = generate_buttons(message.from_user.id)
         if response_status:
             bot.send_message(second_user_id, response[1], reply_markup=keyboard)
         bot.send_message(message.from_user.id, response[0], reply_markup=keyboard)
@@ -68,8 +59,18 @@ def get_text_messages(message):
         keyboard.add(types.InlineKeyboardButton(text='🤮', callback_data='-2'))
 
         bot.send_message(message.from_user.id, msg, reply_markup=keyboard)
+    # elif message.text == "/history":
+    #     table = get_history(message.from_user.id)
+    #     bot.send_message(message.from_user.id, f'<pre>{table}</pre>', parse_mode=ParseMode.HTML)
+    elif message.text == "/rating":
+        response = get_rating_history(message.from_user.id)
+        if response > 0:
+            emoji = '😎'
+        else:
+            emoji = '👹'
+        bot.send_message(message.from_user.id, f'Твой рейтинг {response} {emoji}')
     else:
-        bot.send_message(message.from_user.id, "Я тебя не понимаю. Напиши /help.")
+        bot.send_message(message.from_user.id, "Я тебя не понимаю. Напиши /start.")
 
 
 def remind(meeting_participant, user_id):
@@ -80,7 +81,7 @@ def job():
     print("Запускаю поиск встреч для напоминания")
     meeting_reminder(remind)
 
-schedule.every(2).seconds.do(job)
+schedule.every(60).seconds.do(job)
 
 # Обработчик нажатий на кнопки
 @bot.callback_query_handler(func=lambda call: True)

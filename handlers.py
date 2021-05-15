@@ -1,10 +1,12 @@
 import configparser
 import os
 from datetime import datetime, timedelta
+import prettytable as pt
 
 import psycopg2
 from psycopg2 import Error
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+
 
 def connect():
     configs_path = "./"
@@ -39,6 +41,14 @@ def get_user_by_id(id):
     return user[0]
 
 
+def get_user_fulldata_by_id(id):
+    cursor = connect()
+    cursor.execute(f"SELECT * from users where id = {id}")
+    user = cursor.fetchone()
+    cursor.close()
+    return user
+
+
 def create_user(data):
     user = get_user(data.id)
     if user:
@@ -70,31 +80,18 @@ def create_meeting(telegram_id):
     if user is None:
         return False, ['Ты еще не зарегестрирован. Введи команду /start'], None
     cursor = connect()
-    exist = cursor.execute("SELECT * FROM meets limit 1")
-    cursor.fetchone()
-    if (exist is not None):
-        cursor.execute(f"SELECT * from users"
-                       f" LEFT JOIN meets ON users.id = meets.first_user OR users.id = meets.second_user"
-                       f" where telegram_id != {telegram_id}"
-                       f" AND meets.status != 'PROPOSED'"
-                       f" AND meets.status != 'PARTIALLY_ACCEPTED'"
-                       f" AND meets.status != 'ACCEPTED'"
-                       f" AND meets.status != 'IN_PROGRESS'"
-                       f" AND meets.status != 'WAIT_FOR_RATE'"
-                       f" ORDER BY random() LIMIT 1")
-    else:
-        cursor.execute(f"SELECT * from users"
-                       f" ORDER BY random() LIMIT 1")
-    random_user = cursor.fetchone()
+    cursor.execute(f"SELECT * from meets where (first_user = {user[0]} or second_user = {user[0]}) "
+                   f"and status != 'DONE' and status != 'DECLINED' ORDER BY id DESC LIMIT 1")
+    meet = cursor.fetchone()
+    cursor.close()
+    if meet is not None:
+        return False, ['У тебя уже есть запланированная встреча. Если она тебя не устраивает, то отмени ее.'], None
+    random_user = get_random_user(telegram_id)
+    cursor = connect()
     if random_user is None:
         return False, \
                ['Похоже ты единственный пользователь в системе. Я не могу тебе позволить встретиться с самим собой...'], \
                None
-    cursor.execute(f"SELECT * from meets where (first_user = {user[0]} or second_user = {random_user[0]}) "
-                   f"and status != 'DONE' and status != 'DECLINED' ORDER BY id DESC LIMIT 1")
-    meet = cursor.fetchone()
-    if meet is not None:
-        return False, ['У тебя уже есть запланированная встреча. Если она тебя не устраивает, то отмени ее.'], None
     meet_date = datetime.now() + timedelta(days=2)
     meet_date = meet_date.replace(hour=13, minute=00, second=00)
     cursor.execute(f"INSERT INTO meeting_participants (is_accept, user_id)"
@@ -210,3 +207,72 @@ def set_rating(id, rating):
     cursor.execute(f"UPDATE meeting_participants SET rating = '{rating}' WHERE id in (select mp.id from meets left join meets_meeting_participants mmp on meets.id = mmp.meet_id left join meeting_participants mp on mp.id = mmp.participant_id left join users u on u.id = mp.user_id where status = 'ACCEPTED' and u.telegram_id <> '{id}')")
     cursor.close()
     return "Сбасибо, Ваш голос засчитан"
+    
+def get_parc_user(telegram_id):
+    user = get_user(telegram_id)
+    if user is None:
+        return False, 'Ты еще не зарегестрирован. Введи команду /start', None
+    cursor = connect()
+    cursor.execute(f"SELECT is_accept from meeting_participants where user_id = {user[0]} ORDER BY id DESC LIMIT 1")
+    is_accept = cursor.fetchone()
+    if is_accept is None:
+        return False
+    return is_accept[0]
+
+
+def get_random_user(telegram_id):
+    cursor = connect()
+    exist = cursor.execute("SELECT * FROM meets limit 1")
+    cursor.fetchone()
+    if exist is not None:
+        cursor.execute(f"SELECT * from users"
+                       f" LEFT JOIN meets ON users.id = meets.first_user OR users.id = meets.second_user"
+                       f" where telegram_id != {telegram_id}"
+                       f" AND meets.status != 'PROPOSED'"
+                       f" AND meets.status != 'PARTIALLY_ACCEPTED'"
+                       f" AND meets.status != 'ACCEPTED'"
+                       f" AND meets.status != 'IN_PROGRESS'"
+                       f" AND meets.status != 'WAIT_FOR_RATE'"
+                       f" ORDER BY random() LIMIT 1")
+    else:
+        cursor.execute(f"SELECT * from users"
+                       f" where telegram_id != {telegram_id}"
+                       f" ORDER BY random() LIMIT 1")
+    result = cursor.fetchone()
+    cursor.close()
+    return result
+
+
+def get_history(telegram_id):
+    user = get_user(telegram_id)
+    if user is None:
+        return False, 'Ты еще не зарегестрирован. Введи команду /start', None
+    cursor = connect()
+    cursor.execute(f"SELECT * from meets where (first_user = {user[0]} or second_user = {user[0]})"
+                   f" and status = 'DONE'"
+                   f" ORDER BY id DESC"
+                   f" LIMIT 10")
+    history = cursor.fetchall()
+    table = pt.PrettyTable(['Участник', 'Еще один участник', 'Дата встречи'])
+    for elem in history:
+        first_user = get_user_fulldata_by_id(elem[2])
+        second_user = get_user_fulldata_by_id(elem[4])
+        table.add_row([f"{first_user[1]} {first_user[2]} - {first_user[3]}",
+                      f"{second_user[1]} {second_user[2]} - {second_user[3]}",
+                       elem[1].strftime('%Y-%m-%d %H:%M')])
+    return table
+
+
+def get_rating_history(telegram_id):
+    user = get_user(telegram_id)
+    if user is None:
+        return False, 'Ты еще не зарегестрирован. Введи команду /start', None
+    cursor = connect()
+    cursor.execute(f"SELECT SUM(rating) FROM meeting_participants WHERE user_id = {user[0]}")
+    rating = cursor.fetchone()
+    cursor.close()
+    return rating[0]
+
+
+
+
