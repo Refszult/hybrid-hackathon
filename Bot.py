@@ -41,7 +41,7 @@ def get_text_messages(message):
         keyboard = types.InlineKeyboardMarkup(); #наша клавиатура
         key_accept = types.InlineKeyboardButton(text='OK', callback_data='yes'); # кнопка «Да»
         keyboard.add(key_accept); # добавляем кнопку в клавиатуру
-        key_new_date = types.InlineKeyboardButton(text='Перенети на ' + str((datetime.now() + timedelta(days=2)).strftime('%Y-%m-%d %H:%M')), callback_data='yes'); # кнопка «Да»
+        key_new_date = types.InlineKeyboardButton(text='Перенети на ' + str((datetime.now() + timedelta(days=2)).strftime('%Y-%m-%d %H:%M')), callback_data='new_date'); # кнопка «Да»
         keyboard.add(key_new_date); # добавляем кнопку в клавиатуру
         key_decline= types.InlineKeyboardButton(text='Можно ещё посмтореть?', callback_data='no');
         keyboard.add(key_decline);
