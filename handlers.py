@@ -257,6 +257,16 @@ def get_history(telegram_id):
     return table
 
 
+def get_rating_history(telegram_id):
+    user = get_user(telegram_id)
+    if user is None:
+        return False, 'Ты еще не зарегестрирован. Введи команду /start', None
+    cursor = connect()
+    cursor.execute(f"SELECT SUM(rating) FROM meeting_participants WHERE user_id = {user[0]}")
+    rating = cursor.fetchone()
+    cursor.close()
+    return rating[0]
+
 
 
 

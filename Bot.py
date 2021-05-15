@@ -11,7 +11,7 @@ from telegram import ParseMode
 
 from buttons import generate_buttons
 from handlers import get_user, create_user, add_position, create_meeting, change_meeting_date, approved_meeting, \
-    declined_meeting, meeting_reminder, get_history
+    declined_meeting, meeting_reminder, get_history, get_rating_history
 
 with open("token", "r") as f:
     token = f.read()
@@ -48,7 +48,9 @@ def get_text_messages(message):
     elif message.text == "/history":
         table = get_history(message.from_user.id)
         bot.send_message(message.from_user.id, f'<pre>{table}</pre>', parse_mode=ParseMode.HTML)
-
+    elif message.text == "/rating":
+        response = get_rating_history(message.from_user.id)
+        bot.send_message(message.from_user.id, f'Твой рейтинг - {response}')
     else:
         bot.send_message(message.from_user.id, "Я тебя не понимаю. Напиши /start.")
 
