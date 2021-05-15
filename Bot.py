@@ -1,13 +1,17 @@
 # Подключаем модуль случайных чисел
 import datetime
-import random
 from datetime import datetime, timedelta
+
+import threading
+import time
+import schedule
 
 # Подключаем модуль для Телеграма
 import telebot
 from telebot import types
 
-from handlers import get_user, create_user, add_position, create_meeting
+# from handlers import get_user, create_user, add_position, create_meeting, meeting_reminder
+from handlers import add_position, get_user, create_user, create_meeting, meeting_reminder
 
 with open("token", "r") as f:
     token = f.read()
@@ -56,17 +60,29 @@ def get_text_messages(message):
         bot.send_message(message.from_user.id, "Я тебя не понимаю. Напиши /help.")
 
 
-# Обработчик нажатий на кнопки
-@bot.callback_query_handler(func=lambda call: True)
-def callback_worker(call):
-    # Если нажали на одну из 12 кнопок — выводим гороскоп
-    if call.data == "zodiac":
-        # Формируем гороскоп
-        msg = random.choice(first) + ' ' + random.choice(second) + ' ' + random.choice(
-            second_add) + ' ' + random.choice(third)
-        # Отправляем текст в Телеграм
-        bot.send_message(call.message.chat.id, msg)
+def remind(meeting_participant, user_id):
+    msg = "Напоминаем: у вас встреча с " + meeting_participant + "в " + str((datetime.now() + timedelta(days=2)).strftime('%Y-%m-%d %H:%M'))
+    bot.send_message(user_id, msg)
 
+def job():
+    print("Запускаю поиск встреч для напоминания")
+    meeting_reminder(remind)
 
+schedule.every(2).seconds.do(job)
+
+def worker():
+    # нужно иметь свой цикл для запуска планировщика с периодом в 1 секунду:
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
+
+t = threading.Thread(target=worker, args=())
+
+t.start()
 # Запускаем постоянный опрос бота в Телеграме
 bot.polling(none_stop=True, interval=0)
+
+
+
+
+

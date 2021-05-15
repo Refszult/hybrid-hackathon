@@ -6,7 +6,6 @@ import psycopg2
 from psycopg2 import Error
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 
-
 def connect():
     configs_path = "./"
     config = configparser.ConfigParser()
@@ -65,7 +64,7 @@ def create_meeting(telegram_id):
     cursor.execute(f"SELECT * from users where telegram_id != {telegram_id} ORDER BY random() LIMIT 1")
     random_user = cursor.fetchone()
     if random_user is None:
-        return False,\
+        return False, \
                ['Похоже ты единственный пользователь в системе. Я не могу тебе позволить встретиться с самим собой...'], \
                None
     meet_date = datetime.now() + timedelta(days=2)
@@ -74,8 +73,27 @@ def create_meeting(telegram_id):
                    f" VALUES ('PROPOSED', '{meet_date}', {user[0]}, {random_user[0]})")
     meet_date = meet_date.strftime('%Y-%m-%d %H:%M')
     return True, [f'Предлагаем встречу с {random_user[1]} {random_user[2]} - {random_user[3]} в {meet_date}',
-                  f'Предлагаем встречу с {user[1]} {user[2]} - {user[3]} в {meet_date}'],\
+                  f'Предлагаем встречу с {user[1]} {user[2]} - {user[3]} в {meet_date}'], \
            random_user[5]
 
 
+def meeting_reminder(remind):
+    print("Ищу")
+    cursor = connect()
+    cursor.execute(
+        f"SELECT * FROM meets WHERE status = 'ACCEPTED' AND start_date BETWEEN (NOW()::date + INTERVAL '1 DAY') AND (NOW()::date + INTERVAL '2 DAY')")
+    meets = cursor.fetchall()
 
+    print("Нашёл " + str(len(meets)) + " встреч")
+
+    for meet in meets:
+        cursor.execute(
+            f"select u.telegram_id, u.firstname, u.lastname from meets_meeting_participants left join meeting_participants mp on mp.id = meets_meeting_participants.participant_id left join users u on u.id = mp.user_id WHERE meet_id = '{meet[3]}'")
+        users = cursor.fetchall()
+
+        first_user = users[0]
+        second_user = users[1]
+
+        remind(meeting_participant=str(first_user[1] + " " + first_user[2]), user_id=second_user[0])
+        remind(meeting_participant=str(second_user[1] + " " + second_user[2]), user_id=first_user[0])
+        # remind(meeting_participant="asdfgh", user_id=first_user[4])
