@@ -25,7 +25,9 @@ bot = telebot.TeleBot(token)
 @bot.message_handler(content_types=['text'])
 def get_text_messages(message):
     if message.text == "/help":
-        bot.send_message(message.from_user.id, "Напиши /start")
+        bot.send_message(message.from_user.id, "Напиши /start для работы с ботом \n"
+                                               "/history - для получение информации по последним 10 встречам \n"
+                                               "/rating - для получения текущего рейтинга")
     elif message.text.find("/position") != -1:
         response = add_position(message.from_user.id, message.text.replace('/position', ''))
         bot.send_message(message.from_user.id, response)
