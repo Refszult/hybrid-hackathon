@@ -92,6 +92,7 @@ def job_vote():
 
 
 schedule.every().day.at("13:30").do(job_vote)
+#schedule.every(60).seconds.do(job_vote)
 
 
 # Обработчик нажатий на кнопки
