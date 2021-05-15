@@ -1,6 +1,3 @@
-import datetime
-from datetime import datetime, timedelta
-
 import threading
 import time
 import schedule
@@ -8,11 +5,11 @@ import schedule
 # Подключаем модуль для Телеграма
 import telebot
 from telebot import types
-# from telegram import ParseMode
+from telegram import ParseMode
 
 from buttons import generate_buttons, generate_position_buttons
 from handlers import get_user, create_user, add_position, create_meeting, change_meeting_date, approved_meeting, \
-    declined_meeting, meeting_reminder, set_rating, get_history, get_rating_history
+    declined_meeting, meeting_reminder, set_rating, get_history, get_rating_history, vote_reminder
 
 with open("token", "r") as f:
     token = f.read()
@@ -76,11 +73,26 @@ def remind(meeting_participant, user_id, date):
     msg = "Напоминаем: у вас встреча с " + meeting_participant + "в " + str(date.strftime('%Y-%m-%d %H:%M'))
     bot.send_message(user_id, msg)
 
+
 def job():
     print("Запускаю поиск встреч для напоминания")
     meeting_reminder(remind)
 
+
 schedule.every(60).seconds.do(job)
+
+
+def remind_vote(user_id):
+    bot.send_message(user_id, "Оцени свою прошедшую встречу, введи команду /vote")
+
+
+def job_vote():
+    print("Запускаю поиск встреч для напоминания о необходимости оценить встречу")
+    vote_reminder(remind_vote)
+
+
+schedule.every().day.at("13:30").do(job_vote)
+
 
 # Обработчик нажатий на кнопки
 @bot.callback_query_handler(func=lambda call: True)

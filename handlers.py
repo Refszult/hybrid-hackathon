@@ -203,11 +203,23 @@ def declined_meeting(telegram_id):
 
 
 def set_rating(id, rating):
+    user = get_user(id)
+    if user is None:
+        return 'Ты еще не зарегестрирован. Введи команду /start'
     cursor = connect()
     cursor.execute(f"UPDATE meeting_participants SET rating = '{rating}' WHERE id in (select mp.id from meets left join meets_meeting_participants mmp on meets.id = mmp.meet_id left join meeting_participants mp on mp.id = mmp.participant_id left join users u on u.id = mp.user_id where status = 'ACCEPTED' and u.telegram_id <> '{id}')")
+    cursor.execute(f"SELECT * from meets where first_user = {user[0]} or second_user = {user[0]} ORDER BY id DESC LIMIT 1")
+    meet = cursor.fetchone()
+    cursor.execute(f"SELECT * from meeting_participants where user_id = {meet[2]} ORDER BY id DESC LIMIT 1")
+    first_partic = cursor.fetchone()
+    cursor.execute(f"SELECT * from meeting_participants where user_id = {meet[4]} ORDER BY id DESC LIMIT 1")
+    second_partic = cursor.fetchone()
+    if first_partic[3] and second_partic[3]:
+        cursor.execute(f"UPDATE meets SET status = 'DONE' where id = {meet[3]}")
     cursor.close()
     return "Сбасибо, Ваш голос засчитан"
-    
+
+
 def get_parc_user(telegram_id):
     user = get_user(telegram_id)
     if user is None:
@@ -272,6 +284,21 @@ def get_rating_history(telegram_id):
     rating = cursor.fetchone()
     cursor.close()
     return rating[0]
+
+
+def vote_reminder(remind_vote):
+    cursor = connect()
+    cursor.execute(f"SELECT * FROM meets WHERE start_date BETWEEN (NOW()::date) AND (NOW()::date + INTERVAL '1 DAY')"
+                   f" AND status != 'DECLINED'")
+    meets = cursor.fetchall()
+    for met in meets:
+        user_id_first = met[2]
+        user_id_second = met[4]
+        user_telegram_id_first = get_user_by_id(user_id_first)
+        user_telegram_id_second = get_user_by_id(user_id_second)
+        remind_vote(user_id=user_telegram_id_first)
+        remind_vote(user_id=user_telegram_id_second)
+
 
 
 

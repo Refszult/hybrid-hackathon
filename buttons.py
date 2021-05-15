@@ -14,7 +14,7 @@ def generate_buttons(telegram_id):
             key_accept = types.InlineKeyboardButton(text='OK', callback_data='yes')
             keyboard.add(key_accept)
         key_new_date = types.InlineKeyboardButton(
-            text='Перенести на ' + str((datetime.now() + timedelta(days=3)).strftime('%Y-%m-%d %H:%M')),
+            text='Перенести на ' + str((datetime.now() + timedelta(days=3)).replace(hour=13, minute=00, second=00).strftime('%Y-%m-%d %H:%M')),
             callback_data='new_date')
         keyboard.add(key_new_date)
         key_decline = types.InlineKeyboardButton(text='Можно ещё посмтореть?', callback_data='no')
