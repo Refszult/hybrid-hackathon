@@ -7,10 +7,11 @@ import schedule
 
 # Подключаем модуль для Телеграма
 import telebot
+from telegram import ParseMode
 
 from buttons import generate_buttons
 from handlers import get_user, create_user, add_position, create_meeting, change_meeting_date, approved_meeting, \
-    declined_meeting, meeting_reminder
+    declined_meeting, meeting_reminder, get_history
 
 with open("token", "r") as f:
     token = f.read()
@@ -44,8 +45,12 @@ def get_text_messages(message):
         if response_status:
             bot.send_message(second_user_id, response[1], reply_markup=keyboard)
         bot.send_message(message.from_user.id, response[0], reply_markup=keyboard)
+    elif message.text == "/history":
+        table = get_history(message.from_user.id)
+        bot.send_message(message.from_user.id, f'<pre>{table}</pre>', parse_mode=ParseMode.HTML)
+
     else:
-        bot.send_message(message.from_user.id, "Я тебя не понимаю. Напиши /help.")
+        bot.send_message(message.from_user.id, "Я тебя не понимаю. Напиши /start.")
 
 
 def remind(meeting_participant, user_id):

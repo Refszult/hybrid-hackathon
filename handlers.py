@@ -1,6 +1,7 @@
 import configparser
 import os
 from datetime import datetime, timedelta
+import prettytable as pt
 
 import psycopg2
 from psycopg2 import Error
@@ -38,6 +39,14 @@ def get_user_by_id(id):
     user = cursor.fetchone()
     cursor.close()
     return user[0]
+
+
+def get_user_fulldata_by_id(id):
+    cursor = connect()
+    cursor.execute(f"SELECT * from users where id = {id}")
+    user = cursor.fetchone()
+    cursor.close()
+    return user
 
 
 def create_user(data):
@@ -226,5 +235,28 @@ def get_random_user(telegram_id):
     result = cursor.fetchone()
     cursor.close()
     return result
+
+
+def get_history(telegram_id):
+    user = get_user(telegram_id)
+    if user is None:
+        return False, 'Ты еще не зарегестрирован. Введи команду /start', None
+    cursor = connect()
+    cursor.execute(f"SELECT * from meets where (first_user = {user[0]} or second_user = {user[0]})"
+                   f" and status = 'DONE'"
+                   f" ORDER BY id DESC"
+                   f" LIMIT 10")
+    history = cursor.fetchall()
+    table = pt.PrettyTable(['Участник', 'Еще один участник', 'Дата встречи'])
+    for elem in history:
+        first_user = get_user_fulldata_by_id(elem[2])
+        second_user = get_user_fulldata_by_id(elem[4])
+        table.add_row([f"{first_user[1]} {first_user[2]} - {first_user[3]}",
+                      f"{second_user[1]} {second_user[2]} - {second_user[3]}",
+                       elem[1].strftime('%Y-%m-%d %H:%M')])
+    return table
+
+
+
 
 
