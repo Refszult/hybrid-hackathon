@@ -1,4 +1,3 @@
-# Подключаем модуль случайных чисел
 import datetime
 from datetime import datetime, timedelta
 
@@ -8,8 +7,8 @@ import schedule
 
 # Подключаем модуль для Телеграма
 import telebot
-from telebot import types
 
+from buttons import generate_buttons
 from handlers import get_user, create_user, add_position, create_meeting, change_meeting_date, approved_meeting, \
     declined_meeting, meeting_reminder
 
@@ -41,19 +40,7 @@ def get_text_messages(message):
             bot.send_message(message.from_user.id, response)
     elif message.text == "/meeting":
         response_status, response, second_user_id = create_meeting(message.from_user.id)
-
-        keyboard = types.InlineKeyboardMarkup()  # наша клавиатура
-        key_accept = types.InlineKeyboardButton(text='OK', callback_data='yes')  # кнопка «Да»
-        keyboard.add(key_accept)  # добавляем кнопку в клавиатуру
-        key_new_date = types.InlineKeyboardButton(
-            text='Перенети на ' + str((datetime.now() + timedelta(days=3)).strftime('%Y-%m-%d %H:%M')),
-            callback_data='new_date')  # кнопка «Да»
-        keyboard.add(key_new_date)  # добавляем кнопку в клавиатуру
-        key_decline = types.InlineKeyboardButton(text='Можно ещё посмтореть?', callback_data='no')
-        keyboard.add(key_decline)
-        # question = 'Тебе '+str(age)+' лет, тебя зовут '+name+' '+surname+'?'
-        # bot.send_message(message.from_user.id, text="встреча!", reply_markup=keyboard)
-
+        keyboard = generate_buttons(message.from_user.id)
         if response_status:
             bot.send_message(second_user_id, response[1], reply_markup=keyboard)
         bot.send_message(message.from_user.id, response[0], reply_markup=keyboard)
@@ -69,7 +56,7 @@ def job():
     print("Запускаю поиск встреч для напоминания")
     meeting_reminder(remind)
 
-schedule.every(2).seconds.do(job)
+schedule.every(60).seconds.do(job)
 
 # Обработчик нажатий на кнопки
 @bot.callback_query_handler(func=lambda call: True)
