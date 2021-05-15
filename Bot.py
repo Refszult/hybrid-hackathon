@@ -5,7 +5,7 @@ import random
 import telebot
 from telebot import types
 
-from handlers import get_user, create_user, add_position
+from handlers import get_user, create_user, add_position, create_meeting
 
 with open("token", "r") as f:
     token = f.read()
@@ -33,6 +33,11 @@ def get_text_messages(message):
         else:
             response = create_user(message.from_user)
             bot.send_message(message.from_user.id, response)
+    elif message.text == "/meeting":
+        response_status, response, second_user_id = create_meeting(message.from_user.id)
+        if response_status:
+            bot.send_message(second_user_id, response[1])
+        bot.send_message(message.from_user.id, response[0])
     else:
         bot.send_message(message.from_user.id, "Я тебя не понимаю. Напиши /help.")
 
